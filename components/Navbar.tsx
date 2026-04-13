@@ -82,7 +82,7 @@ export default function Navbar() {
       </div>
       
       {/* Mobile navigation row if needed, below the top row */}
-      <div className="flex md:hidden border-t border-slate-100 bg-slate-50/50 px-4 py-2 gap-4">
+      <div className="flex md:hidden flex-wrap border-t border-slate-100 bg-slate-50/50 px-4 py-2 gap-x-6 gap-y-2">
         <Link 
           href="/" 
           className={`text-xs font-medium transition ${!isIncident ? "text-orange-600" : "text-slate-500"}`}

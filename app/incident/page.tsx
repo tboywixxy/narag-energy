@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import SectionCard from "@/components/SectionCard";
 
 type IncidentFormState = {
@@ -190,6 +191,15 @@ function TextArea({
 
 export default function IncidentReportPage() {
   const [form, setForm] = useState<IncidentFormState>(initialState);
+  const [showToast, setShowToast] = useState(false);
+
+  const handleResetClick = () => {
+    setForm(initialState);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,9 +216,33 @@ export default function IncidentReportPage() {
   };
 
   return (
-    <main className="flex-1 px-4 py-6 md:px-8 lg:px-10 flex flex-col">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 pb-10">
-        <form onSubmit={handleSubmit} className="grid gap-6">
+    <main className="flex-1 px-4 md:px-8 lg:px-10 flex flex-col relative">
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: -20, x: "-50%" }}
+            className="fixed top-24 left-1/2 z-[100] rounded-full bg-slate-900 px-6 py-2.5 text-sm font-medium text-white shadow-xl shadow-slate-900/10"
+          >
+            Form has been cleared
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="mx-auto flex w-full max-w-4xl flex-col pb-10">
+        
+        <div className="sticky top-[104px] z-40 bg-slate-50/95 backdrop-blur -mx-4 px-4 py-1.5 border-b border-slate-200 lg:static lg:bg-transparent lg:backdrop-blur-none lg:mx-0 lg:px-0 lg:py-2 lg:mb-2 lg:border-none flex justify-end">
+          <button
+            type="button"
+            onClick={handleResetClick}
+            className="px-2 text-[11px] font-medium text-slate-500 underline underline-offset-2 transition hover:text-red-500 cursor-pointer"
+          >
+            Reset Form
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="grid gap-6 pt-4 lg:pt-0">
           <SectionCard title="1. Basic Categorization" subtitle="Define the primary type of the incident and what was impacted.">
             <div className="grid gap-6">
               <Select

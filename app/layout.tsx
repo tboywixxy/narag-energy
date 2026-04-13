@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="flex min-h-screen flex-col bg-slate-50">
+      <body className="flex min-h-screen flex-col bg-slate-50 overflow-x-hidden">
         <Navbar />
         {children}
         <Footer />

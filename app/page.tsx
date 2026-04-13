@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import ProgressTabs from "@/components/ProgressTabs";
 import SectionCard from "@/components/SectionCard";
 import {
@@ -313,6 +314,7 @@ function TextArea({
 
 export default function Page() {
   const [form, setForm] = useState<FormState>(initialState);
+  const [showToast, setShowToast] = useState(false);
   const [activeSection, setActiveSection] = useState(sectionIds[0]);
 
   const refs = {
@@ -416,28 +418,47 @@ export default function Page() {
     localStorage.removeItem(STORAGE_KEY);
   };
 
+  const handleResetClick = () => {
+    clearForm();
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
+
   return (
-    <main className="flex-1 px-4 py-6 md:px-8 lg:px-10">
+    <main className="flex-1 px-4 py-6 md:px-8 lg:px-10 relative">
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: -20, x: "-50%" }}
+            className="fixed top-24 left-1/2 z-[100] rounded-full bg-slate-900 px-6 py-2.5 text-sm font-medium text-white shadow-xl shadow-slate-900/10"
+          >
+            Form has been cleared
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="mx-auto flex h-full max-w-7xl flex-col gap-5">
         <div className="grid flex-1 gap-6 lg:grid-cols-[260px_1fr] items-start">
-          <aside className="sticky top-24 flex max-h-[calc(100vh-6rem)] flex-col gap-5 overflow-y-auto pr-1 pb-4">
-            <ProgressTabs
-              sections={sectionIds}
-              activeSection={activeSection}
-              onClick={scrollToSection}
-            />
+          <aside className="min-w-0 w-full sticky top-[104px] z-40 bg-slate-50/95 backdrop-blur -mx-4 px-4 pt-1.5 pb-1 border-b border-slate-200 lg:static lg:bg-transparent lg:backdrop-blur-none lg:mx-0 lg:px-0 lg:py-0 lg:border-none lg:sticky lg:top-24 flex lg:max-h-[calc(100vh-6rem)] flex-col gap-1 lg:gap-3 lg:overflow-y-auto lg:pr-1 pb-4">
+            <div className="hidden lg:block w-full">
+              <ProgressTabs
+                sections={sectionIds}
+                activeSection={activeSection}
+                onClick={scrollToSection}
+              />
+            </div>
             
-            <SectionCard title="Actions">
-              <div className="grid gap-3">
-                <button
-                  type="button"
-                  onClick={clearForm}
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-                >
-                  Reset Form
-                </button>
-              </div>
-            </SectionCard>
+            <button
+              type="button"
+              onClick={handleResetClick}
+              className="self-end rounded-md border border-dotted border-slate-400 bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-500 transition hover:border-red-400 hover:bg-red-50 hover:text-red-600 cursor-pointer"
+            >
+              Reset Form
+            </button>
           </aside>
 
           <div className="flex flex-col pr-1 pb-10" id="form-container">
