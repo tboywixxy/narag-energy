@@ -20,15 +20,15 @@ export default function ProgressTabs({
               key={section}
               type="button"
               onClick={() => onClick(section)}
-              className={`flex flex-1 min-w-[30%] lg:min-w-0 shrink-0 items-center justify-center lg:justify-start rounded-md lg:rounded-lg px-1.5 py-1.5 lg:px-3 lg:py-2 text-center lg:text-left text-[10px] leading-tight lg:text-[11px] font-medium transition ${
+              className={`flex flex-1 min-w-[30%] lg:min-w-0 shrink-0 items-center justify-center lg:justify-start rounded-md lg:rounded-xl px-1.5 py-1.5 lg:px-4 lg:py-3 text-center lg:text-left text-[10px] leading-tight lg:text-xs font-semibold transition ${
                 isActive
-                  ? "bg-orange-500 text-white shadow-sm"
-                  : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                  ? "bg-orange-500 text-white shadow-md lg:scale-[1.02]"
+                  : "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               }`}
             >
               <span
-                className={`hidden lg:inline-flex mr-2 h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] ${
-                  isActive ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+                className={`hidden lg:inline-flex mr-3 h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                  isActive ? "bg-white/20 text-white" : "bg-slate-200 text-slate-500"
                 }`}
               >
                 {index + 1}

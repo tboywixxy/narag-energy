@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import SectionCard from "@/components/SectionCard";
+import Footer from "@/components/Footer";
 
 type IncidentFormState = {
   type: string;
@@ -216,7 +217,7 @@ export default function IncidentReportPage() {
   };
 
   return (
-    <main className="flex-1 px-4 md:px-8 lg:px-10 flex flex-col relative">
+    <main className="flex-1 px-4 md:px-8 lg:px-10 flex flex-col relative lg:overflow-y-auto hide-scrollbar">
       <AnimatePresence>
         {showToast && (
           <motion.div
@@ -236,7 +237,7 @@ export default function IncidentReportPage() {
           <button
             type="button"
             onClick={handleResetClick}
-            className="px-2 text-[11px] font-medium text-slate-500 underline underline-offset-2 transition hover:text-red-500 cursor-pointer"
+            className="rounded-md border border-dotted border-slate-400 bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-500 transition hover:border-red-400 hover:bg-red-50 hover:text-red-600 cursor-pointer"
           >
             Reset Form
           </button>
@@ -315,6 +316,10 @@ export default function IncidentReportPage() {
             </button>
           </div>
         </form>
+      </div>
+      
+      <div className="mt-8 lg:mt-auto -mx-4 md:-mx-8 lg:-mx-10 pb-8">
+        <Footer />
       </div>
     </main>
   );

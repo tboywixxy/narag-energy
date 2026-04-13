@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ProgressTabs from "@/components/ProgressTabs";
 import SectionCard from "@/components/SectionCard";
+import Footer from "@/components/Footer";
 import {
   companySizes,
   contractorTypes,
@@ -427,7 +428,7 @@ export default function Page() {
   };
 
   return (
-    <main className="flex-1 px-4 py-6 md:px-8 lg:px-10 relative">
+    <main className="flex-1 flex flex-col min-h-0 relative w-full lg:overflow-y-auto bg-slate-50 hide-scrollbar">
       <AnimatePresence>
         {showToast && (
           <motion.div
@@ -441,27 +442,28 @@ export default function Page() {
         )}
       </AnimatePresence>
 
-      <div className="mx-auto flex h-full max-w-7xl flex-col gap-5">
-        <div className="grid flex-1 gap-6 lg:grid-cols-[260px_1fr] items-start">
-          <aside className="min-w-0 w-full sticky top-[104px] z-40 bg-slate-50/95 backdrop-blur -mx-4 px-4 pt-1.5 pb-1 border-b border-slate-200 lg:static lg:bg-transparent lg:backdrop-blur-none lg:mx-0 lg:px-0 lg:py-0 lg:border-none lg:sticky lg:top-24 flex lg:max-h-[calc(100vh-6rem)] flex-col gap-1 lg:gap-3 lg:overflow-y-auto lg:pr-1 pb-4">
-            <div className="hidden lg:block w-full">
-              <ProgressTabs
-                sections={sectionIds}
-                activeSection={activeSection}
-                onClick={scrollToSection}
-              />
+      <div className="mx-auto flex flex-none w-full max-w-[1600px] flex-col lg:flex-row lg:gap-6 px-4 md:px-8 lg:px-8 pb-6 pt-6 lg:pt-8">
+        <aside className="w-full lg:w-[240px] xl:w-[260px] shrink-0 sticky top-[10px] z-40 bg-slate-50/95 lg:bg-transparent -mx-4 px-4 pt-1.5 pb-1 lg:mx-0 lg:px-0 lg:py-0 lg:border-none lg:pr-4 border-b border-slate-200 lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto hide-scrollbar self-start">
+          <div className="flex flex-col gap-1 lg:gap-3 lg:pr-2">
+              <div className="hidden lg:block w-full">
+                <ProgressTabs
+                  sections={sectionIds}
+                  activeSection={activeSection}
+                  onClick={scrollToSection}
+                />
+              </div>
+              
+              <button
+                type="button"
+                onClick={handleResetClick}
+                className="self-end rounded-lg border border-dotted border-slate-400 bg-slate-50 px-4 py-2 text-xs font-medium text-slate-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-600 cursor-pointer mt-1"
+              >
+                Reset Form
+              </button>
             </div>
-            
-            <button
-              type="button"
-              onClick={handleResetClick}
-              className="self-end rounded-md border border-dotted border-slate-400 bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-500 transition hover:border-red-400 hover:bg-red-50 hover:text-red-600 cursor-pointer"
-            >
-              Reset Form
-            </button>
           </aside>
 
-          <div className="flex flex-col pr-1 pb-10" id="form-container">
+          <div className="flex flex-col flex-1 pb-10 lg:py-0 lg:px-2" id="form-container">
             <div className="space-y-6 pb-12">
               <section
                 ref={(node) => {
@@ -1197,7 +1199,9 @@ export default function Page() {
             </div>
           </div>
         </div>
-      </div>
+        <div className="mt-auto shrink-0 w-full">
+          <Footer />
+        </div>
     </main>
   );
 }
