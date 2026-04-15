@@ -8,9 +8,6 @@ import Footer from "@/components/Footer";
 import {
   companySizes,
   contractorTypes,
-  documentStatuses,
-  evaluationCriteria,
-  scoreOptions,
   serviceCategories,
 } from "@/data/options";
 
@@ -22,23 +19,6 @@ type ContactPerson = {
   phone: string;
 };
 
-type KeyStaff = {
-  id: string;
-  name: string;
-  role: string;
-  years: string;
-  certification: string;
-};
-
-type ProjectRecord = {
-  id: string;
-  projectName: string;
-  client: string;
-  value: string;
-  year: string;
-  status: string;
-};
-
 type Reference = {
   id: string;
   company: string;
@@ -47,32 +27,14 @@ type Reference = {
   email: string;
 };
 
-type DocumentItem = {
-  id: string;
-  name: string;
-  status: string;
-  expiry: string;
-};
-
-type EvaluationRow = {
-  id: string;
-  criterion: string;
-  score: number;
-  comment: string;
-};
-
 type FormState = {
-  formNumber: string;
-  screeningDate: string;
+  appointmentDate: string;
   procurementRef: string;
   companyName: string;
-  registrationNumber: string;
-  taxId: string;
   website: string;
-  contractorType: string;
+  contractType: string;
   serviceCategory: string;
   companySize: string;
-  yearsInOperation: string;
 
   address: string;
   city: string;
@@ -80,56 +42,38 @@ type FormState = {
   country: string;
 
   contactPersons: ContactPerson[];
-  keyStaff: KeyStaff[];
-  projectRecords: ProjectRecord[];
+  projectName: string;
+  projectEstimateBudget: string;
+  projectDuration: string;
+  projectNotes: string;
   references: Reference[];
-  documents: DocumentItem[];
-  evaluations: EvaluationRow[];
 
   scopeSummary: string;
-  hseStatement: string;
-  qualityStatement: string;
-  notes: string;
-
-  recommended: string;
-  reviewerName: string;
-  reviewerTitle: string;
 };
 
-const STORAGE_KEY = "contractor-pre-screening-form-v2";
+const STORAGE_KEY = "contractor-pre-screening-form-v5";
+const LEGACY_STORAGE_KEYS = [
+  "contractor-pre-screening-form-v4",
+  "contractor-pre-screening-form-v3",
+  "contractor-pre-screening-form-v2",
+];
 
 const sectionIds = [
   "Company Information",
   "Contacts & Location",
-  "Technical Capability",
-  "Compliance Documents",
-  "Evaluation & Decision",
-];
-
-const defaultDocuments = [
-  "CAC / Business Registration",
-  "Tax Clearance Certificate",
-  "VAT Registration",
-  "HSE Policy",
-  "Insurance Certificate",
-  "Quality Policy / QA-QC Procedure",
-  "Relevant Professional Licenses",
+  "Project Details",
 ];
 
 const makeId = () => Math.random().toString(36).slice(2, 11);
 
 const initialState: FormState = {
-  formNumber: "CPSF-001",
-  screeningDate: "",
+  appointmentDate: "",
   procurementRef: "",
   companyName: "",
-  registrationNumber: "",
-  taxId: "",
   website: "",
-  contractorType: "",
+  contractType: "",
   serviceCategory: "",
   companySize: "",
-  yearsInOperation: "",
 
   address: "",
   city: "",
@@ -139,41 +83,39 @@ const initialState: FormState = {
   contactPersons: [
     { id: makeId(), name: "", position: "", email: "", phone: "" },
   ],
-  keyStaff: [
-    { id: makeId(), name: "", role: "", years: "", certification: "" },
-  ],
-  projectRecords: [
-    {
-      id: makeId(),
-      projectName: "",
-      client: "",
-      value: "",
-      year: "",
-      status: "",
-    },
-  ],
-  references: [{ id: makeId(), company: "", contact: "", phone: "", email: "" }],
-  documents: defaultDocuments.map((doc) => ({
-    id: makeId(),
-    name: doc,
-    status: "Not Available",
-    expiry: "",
-  })),
-  evaluations: evaluationCriteria.map((criterion) => ({
-    id: makeId(),
-    criterion,
-    score: 3,
-    comment: "",
-  })),
+  projectName: "",
+  projectEstimateBudget: "",
+  projectDuration: "",
+  projectNotes: "",
+  references: [],
 
   scopeSummary: "",
-  hseStatement: "",
-  qualityStatement: "",
-  notes: "",
+};
 
-  recommended: "Under Review",
-  reviewerName: "",
-  reviewerTitle: "",
+const parseSavedForm = (saved: string | null): FormState => {
+  if (!saved) {
+    return initialState;
+  }
+
+  try {
+    const parsed = JSON.parse(saved) as Partial<
+      FormState & {
+        screeningDate?: string;
+        contractorType?: string;
+      }
+    >;
+
+    return {
+      ...initialState,
+      ...parsed,
+      contractType: parsed.contractType ?? parsed.contractorType ?? initialState.contractType,
+      appointmentDate:
+        parsed.appointmentDate ?? parsed.screeningDate ?? initialState.appointmentDate,
+    };
+  } catch {
+    console.log("Could not load saved draft");
+    return initialState;
+  }
 };
 
 function ChevronDownIcon() {
@@ -201,12 +143,14 @@ function Input({
   onChange,
   placeholder,
   type = "text",
+  error,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   type?: string;
+  error?: string;
 }) {
   return (
     <label className="grid gap-2">
@@ -216,11 +160,61 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 transition placeholder:text-orange-400/80 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+        aria-invalid={error ? "true" : "false"}
+        className={`h-12 rounded-xl border bg-white px-4 text-sm text-slate-900 transition placeholder:text-orange-400/80 focus:outline-none focus:ring-1 ${
+          error
+            ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500"
+            : "border-slate-200 focus:border-orange-500 focus:ring-orange-500"
+        }`}
       />
+      {error ? <span className="text-xs text-rose-600">{error}</span> : null}
     </label>
   );
 }
+
+const PUBLIC_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.com",
+  "yahoo.co.uk",
+  "yahoo.ca",
+  "yahoo.fr",
+  "yahoo.de",
+  "hotmail.com",
+  "outlook.com",
+  "live.com",
+  "msn.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "aol.com",
+  "proton.me",
+  "protonmail.com",
+  "pm.me",
+  "gmx.com",
+  "mail.com",
+  "zoho.com",
+  "yandex.com",
+]);
+
+const getContactEmailError = (email: string) => {
+  const trimmedEmail = email.trim().toLowerCase();
+
+  if (!trimmedEmail) {
+    return "";
+  }
+
+  const emailParts = trimmedEmail.split("@");
+  if (emailParts.length !== 2 || !emailParts[1]) {
+    return "Enter a valid company email address.";
+  }
+
+  if (PUBLIC_EMAIL_DOMAINS.has(emailParts[1])) {
+    return "Use a company email address. Public email domains are not accepted.";
+  }
+
+  return "";
+};
 
 function Select({
   label,
@@ -257,35 +251,6 @@ function Select({
   );
 }
 
-function TableSelect({
-  value,
-  onChange,
-  options,
-}: {
-  value: string | number;
-  onChange: (value: string) => void;
-  options: Array<string | number>;
-}) {
-  return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-10 text-sm text-slate-900 shadow-sm transition focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-      >
-        {options.map((option) => (
-          <option key={String(option)} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-      <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-        <ChevronDownIcon />
-      </div>
-    </div>
-  );
-}
-
 function TextArea({
   label,
   value,
@@ -314,28 +279,29 @@ function TextArea({
 }
 
 export default function Page() {
-  const [form, setForm] = useState<FormState>(initialState);
+  const [form, setForm] = useState<FormState>(() => {
+    if (typeof window === "undefined") {
+      return initialState;
+    }
+
+    return parseSavedForm(
+      localStorage.getItem(STORAGE_KEY) ??
+        LEGACY_STORAGE_KEYS.map((key) => localStorage.getItem(key)).find(Boolean) ??
+        null
+    );
+  });
   const [showToast, setShowToast] = useState(false);
   const [activeSection, setActiveSection] = useState(sectionIds[0]);
 
-  const refs = {
-    "Company Information": useRef<HTMLElement | null>(null),
-    "Contacts & Location": useRef<HTMLElement | null>(null),
-    "Technical Capability": useRef<HTMLElement | null>(null),
-    "Compliance Documents": useRef<HTMLElement | null>(null),
-    "Evaluation & Decision": useRef<HTMLElement | null>(null),
-  };
+  const companyInformationRef = useRef<HTMLElement | null>(null);
+  const contactsLocationRef = useRef<HTMLElement | null>(null);
+  const projectDetailsRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setForm(JSON.parse(saved));
-      } catch {
-        console.log("Could not load saved draft");
-      }
-    }
-  }, []);
+  const refs = {
+    "Company Information": companyInformationRef,
+    "Contacts & Location": contactsLocationRef,
+    "Project Details": projectDetailsRef,
+  };
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
@@ -353,9 +319,7 @@ export default function Page() {
     });
   };
 
-  const addRow = (
-    key: "contactPersons" | "keyStaff" | "projectRecords" | "references"
-  ) => {
+  const addRow = (key: "contactPersons" | "references") => {
     setForm((prev) => {
       if (key === "contactPersons") {
         return {
@@ -363,33 +327,6 @@ export default function Page() {
           contactPersons: [
             ...prev.contactPersons,
             { id: makeId(), name: "", position: "", email: "", phone: "" },
-          ],
-        };
-      }
-
-      if (key === "keyStaff") {
-        return {
-          ...prev,
-          keyStaff: [
-            ...prev.keyStaff,
-            { id: makeId(), name: "", role: "", years: "", certification: "" },
-          ],
-        };
-      }
-
-      if (key === "projectRecords") {
-        return {
-          ...prev,
-          projectRecords: [
-            ...prev.projectRecords,
-            {
-              id: makeId(),
-              projectName: "",
-              client: "",
-              value: "",
-              year: "",
-              status: "",
-            },
           ],
         };
       }
@@ -404,10 +341,7 @@ export default function Page() {
     });
   };
 
-  const removeRow = (
-    key: "contactPersons" | "keyStaff" | "projectRecords" | "references",
-    id: string
-  ) => {
+  const removeRow = (key: "contactPersons" | "references", id: string) => {
     setForm((prev) => ({
       ...prev,
       [key]: prev[key].filter((item) => item.id !== id),
@@ -417,6 +351,7 @@ export default function Page() {
   const clearForm = () => {
     setForm(initialState);
     localStorage.removeItem(STORAGE_KEY);
+    LEGACY_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
   };
 
   const handleResetClick = () => {
@@ -445,500 +380,279 @@ export default function Page() {
       <div className="mx-auto flex flex-none w-full max-w-[1600px] flex-col lg:flex-row lg:gap-6 px-4 md:px-8 lg:px-8 pb-6 pt-6 lg:pt-8">
         <aside className="w-full lg:w-[240px] xl:w-[260px] shrink-0 sticky top-[10px] z-40 bg-slate-50/95 lg:bg-transparent -mx-4 px-4 pt-1.5 pb-1 lg:mx-0 lg:px-0 lg:py-0 lg:border-none lg:pr-4 border-b border-slate-200 lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto hide-scrollbar self-start">
           <div className="flex flex-col gap-1 lg:gap-3 lg:pr-2">
-              <div className="hidden lg:block w-full">
-                <ProgressTabs
-                  sections={sectionIds}
-                  activeSection={activeSection}
-                  onClick={scrollToSection}
-                />
-              </div>
-              
-              <button
-                type="button"
-                onClick={handleResetClick}
-                className="self-end rounded-lg border border-dotted border-slate-400 bg-slate-50 px-4 py-2 text-xs font-medium text-slate-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-600 cursor-pointer mt-1"
-              >
-                Reset Form
-              </button>
+            <div className="hidden lg:block w-full">
+              <ProgressTabs
+                sections={sectionIds}
+                activeSection={activeSection}
+                onClick={scrollToSection}
+              />
             </div>
-          </aside>
 
-          <div className="flex flex-col flex-1 pb-10 lg:py-0 lg:px-2" id="form-container">
-            <div className="space-y-6 pb-12">
-              <section
-                ref={(node) => {
-                  refs["Company Information"].current = node;
-                }}
+            <button
+              type="button"
+              onClick={handleResetClick}
+              className="self-end rounded-lg border border-dotted border-slate-400 bg-slate-50 px-4 py-2 text-xs font-medium text-slate-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-600 cursor-pointer mt-1"
+            >
+              Reset Form
+            </button>
+          </div>
+        </aside>
+
+        <div className="flex flex-col flex-1 pb-10 lg:py-0 lg:px-2" id="form-container">
+          <div className="space-y-6 pb-12">
+            <section ref={companyInformationRef}>
+              <SectionCard
+                title="Company Information"
+                subtitle="Capture core contractor identity, business profile, and service classification."
               >
-                <SectionCard
-                  title="Company Information"
-                  subtitle="Capture core contractor identity, business profile, and service classification."
-                >
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Input
+                    label="Appointment Date"
+                    type="date"
+                    value={form.appointmentDate}
+                    onChange={(value) => updateField("appointmentDate", value)}
+                  />
+                  <Input
+                    label="Procurement Reference"
+                    value={form.procurementRef}
+                    onChange={(value) => updateField("procurementRef", value)}
+                    placeholder="RFQ / Tender Ref"
+                  />
+                  <Input
+                    label="Company Name"
+                    value={form.companyName}
+                    onChange={(value) => updateField("companyName", value)}
+                    placeholder="Enter contractor company name"
+                  />
+                  <Input
+                    label="Website"
+                    value={form.website}
+                    onChange={(value) => updateField("website", value)}
+                    placeholder="https://company.com"
+                  />
+                  <Select
+                    label="Contract Type"
+                    value={form.contractType}
+                    onChange={(value) => updateField("contractType", value)}
+                    options={contractorTypes}
+                  />
+                  <Select
+                    label="Service Category"
+                    value={form.serviceCategory}
+                    onChange={(value) => updateField("serviceCategory", value)}
+                    options={serviceCategories}
+                  />
+                  <Select
+                    label="Company Size"
+                    value={form.companySize}
+                    onChange={(value) => updateField("companySize", value)}
+                    options={companySizes}
+                  />
+                </div>
+
+                <div className="mt-5 grid gap-4">
+                  <TextArea
+                    label="Scope Summary"
+                    value={form.scopeSummary}
+                    onChange={(value) => updateField("scopeSummary", value)}
+                    placeholder="Briefly describe the services, work scope, and project relevance of this contractor."
+                  />
+                </div>
+              </SectionCard>
+            </section>
+
+            <section ref={contactsLocationRef}>
+              <SectionCard
+                title="Contacts & Location"
+                subtitle="Capture contractor office details and focal persons."
+              >
+                <div className="grid gap-4 md:grid-cols-2">
+                  <TextArea
+                    label="Registered Address"
+                    value={form.address}
+                    onChange={(value) => updateField("address", value)}
+                    placeholder="Enter full company address"
+                    rows={3}
+                  />
+                  <div className="grid gap-4">
+                    <Input
+                      label="City"
+                      value={form.city}
+                      onChange={(value) => updateField("city", value)}
+                    />
+                    <Input
+                      label="State"
+                      value={form.state}
+                      onChange={(value) => updateField("state", value)}
+                    />
+                    <Input
+                      label="Country"
+                      value={form.country}
+                      onChange={(value) => updateField("country", value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-8">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        Contact Persons
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        Add primary company contacts for communication and coordination.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => addRow("contactPersons")}
+                      className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                    >
+                      Add Contact
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {form.contactPersons.map((person, index) => (
+                      <div
+                        key={person.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <div className="mb-4 flex items-center justify-between">
+                          <p className="font-medium text-slate-800">
+                            Contact {index + 1}
+                          </p>
+                          {form.contactPersons.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeRow("contactPersons", person.id)}
+                              className="text-sm font-medium text-rose-600 hover:text-rose-700"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <Input
+                            label="Full Name"
+                            value={person.name}
+                            onChange={(value) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                contactPersons: prev.contactPersons.map((item) =>
+                                  item.id === person.id ? { ...item, name: value } : item
+                                ),
+                              }))
+                            }
+                          />
+                          <Input
+                            label="Position"
+                            value={person.position}
+                            onChange={(value) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                contactPersons: prev.contactPersons.map((item) =>
+                                  item.id === person.id
+                                    ? { ...item, position: value }
+                                    : item
+                                ),
+                              }))
+                            }
+                          />
+                          <Input
+                            label="Email"
+                            type="email"
+                            value={person.email}
+                            error={getContactEmailError(person.email)}
+                            onChange={(value) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                contactPersons: prev.contactPersons.map((item) =>
+                                  item.id === person.id ? { ...item, email: value } : item
+                                ),
+                              }))
+                            }
+                          />
+                          <Input
+                            label="Phone"
+                            value={person.phone}
+                            onChange={(value) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                contactPersons: prev.contactPersons.map((item) =>
+                                  item.id === person.id ? { ...item, phone: value } : item
+                                ),
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </SectionCard>
+            </section>
+
+            <section ref={projectDetailsRef}>
+              <SectionCard
+                title="Project Details"
+                subtitle="Share optional details about the contract or project you want to propose."
+              >
+                <div className="grid gap-5">
                   <div className="grid gap-4 md:grid-cols-2">
                     <Input
-                      label="Form Number"
-                      value={form.formNumber}
-                      onChange={(value) => updateField("formNumber", value)}
-                      placeholder="CPSF-001"
+                      label="Project / Contract Title"
+                      value={form.projectName}
+                      onChange={(value) => updateField("projectName", value)}
+                      placeholder="Optional project title"
                     />
                     <Input
-                      label="Screening Date"
-                      type="date"
-                      value={form.screeningDate}
-                      onChange={(value) => updateField("screeningDate", value)}
+                      label="Estimated Budget"
+                      value={form.projectEstimateBudget}
+                      onChange={(value) => updateField("projectEstimateBudget", value)}
+                      placeholder="Optional estimate"
                     />
                     <Input
-                      label="Procurement Reference"
-                      value={form.procurementRef}
-                      onChange={(value) => updateField("procurementRef", value)}
-                      placeholder="RFQ / Tender Ref"
-                    />
-                    <Input
-                      label="Company Name"
-                      value={form.companyName}
-                      onChange={(value) => updateField("companyName", value)}
-                      placeholder="Enter contractor company name"
-                    />
-                    <Input
-                      label="Registration Number"
-                      value={form.registrationNumber}
-                      onChange={(value) => updateField("registrationNumber", value)}
-                      placeholder="CAC / Business Reg No."
-                    />
-                    <Input
-                      label="Tax ID"
-                      value={form.taxId}
-                      onChange={(value) => updateField("taxId", value)}
-                      placeholder="TIN"
-                    />
-                    <Input
-                      label="Website"
-                      value={form.website}
-                      onChange={(value) => updateField("website", value)}
-                      placeholder="https://company.com"
-                    />
-                    <Input
-                      label="Years in Operation"
-                      value={form.yearsInOperation}
-                      onChange={(value) => updateField("yearsInOperation", value)}
-                      placeholder="e.g. 8"
-                    />
-                    <Select
-                      label="Contractor Type"
-                      value={form.contractorType}
-                      onChange={(value) => updateField("contractorType", value)}
-                      options={contractorTypes}
-                    />
-                    <Select
-                      label="Service Category"
-                      value={form.serviceCategory}
-                      onChange={(value) => updateField("serviceCategory", value)}
-                      options={serviceCategories}
-                    />
-                    <Select
-                      label="Company Size"
-                      value={form.companySize}
-                      onChange={(value) => updateField("companySize", value)}
-                      options={companySizes}
+                      label="Estimated Duration"
+                      value={form.projectDuration}
+                      onChange={(value) => updateField("projectDuration", value)}
+                      placeholder="e.g. 8 weeks"
                     />
                   </div>
 
-                  <div className="mt-5 grid gap-4">
-                    <TextArea
-                      label="Scope Summary"
-                      value={form.scopeSummary}
-                      onChange={(value) => updateField("scopeSummary", value)}
-                      placeholder="Briefly describe the services, work scope, and project relevance of this contractor."
-                    />
-                  </div>
-                </SectionCard>
-              </section>
+                  <TextArea
+                    label="Project Notes"
+                    value={form.projectNotes}
+                    onChange={(value) => updateField("projectNotes", value)}
+                    placeholder="Optional project details, assumptions, delivery notes, or anything else the company should know."
+                  />
+                </div>
 
-              <section
-                ref={(node) => {
-                  refs["Contacts & Location"].current = node;
-                }}
-              >
-                <SectionCard
-                  title="Contacts & Location"
-                  subtitle="Capture contractor office details and focal persons."
-                >
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <TextArea
-                      label="Registered Address"
-                      value={form.address}
-                      onChange={(value) => updateField("address", value)}
-                      placeholder="Enter full company address"
-                      rows={3}
-                    />
-                    <div className="grid gap-4">
-                      <Input
-                        label="City"
-                        value={form.city}
-                        onChange={(value) => updateField("city", value)}
-                      />
-                      <Input
-                        label="State"
-                        value={form.state}
-                        onChange={(value) => updateField("state", value)}
-                      />
-                      <Input
-                        label="Country"
-                        value={form.country}
-                        onChange={(value) => updateField("country", value)}
-                      />
+                <div className="mt-8">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        Client References
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        Optional references you want the company to contact.
+                      </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => addRow("references")}
+                      className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                    >
+                      Add Reference
+                    </button>
                   </div>
 
-                  <div className="mt-8">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-base font-semibold text-slate-900">
-                          Contact Persons
-                        </h3>
-                        <p className="text-sm text-slate-500">
-                          Add primary company contacts for communication and coordination.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => addRow("contactPersons")}
-                        className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-                      >
-                        Add Contact
-                      </button>
+                  {form.references.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
+                      No client references added.
                     </div>
-
-                    <div className="space-y-4">
-                      {form.contactPersons.map((person, index) => (
-                        <div
-                          key={person.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                        >
-                          <div className="mb-4 flex items-center justify-between">
-                            <p className="font-medium text-slate-800">
-                              Contact {index + 1}
-                            </p>
-                            {form.contactPersons.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => removeRow("contactPersons", person.id)}
-                                className="text-sm font-medium text-rose-600 hover:text-rose-700"
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <Input
-                              label="Full Name"
-                              value={person.name}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  contactPersons: prev.contactPersons.map((item) =>
-                                    item.id === person.id ? { ...item, name: value } : item
-                                  ),
-                                }))
-                              }
-                            />
-                            <Input
-                              label="Position"
-                              value={person.position}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  contactPersons: prev.contactPersons.map((item) =>
-                                    item.id === person.id
-                                      ? { ...item, position: value }
-                                      : item
-                                  ),
-                                }))
-                              }
-                            />
-                            <Input
-                              label="Email"
-                              type="email"
-                              value={person.email}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  contactPersons: prev.contactPersons.map((item) =>
-                                    item.id === person.id ? { ...item, email: value } : item
-                                  ),
-                                }))
-                              }
-                            />
-                            <Input
-                              label="Phone"
-                              value={person.phone}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  contactPersons: prev.contactPersons.map((item) =>
-                                    item.id === person.id ? { ...item, phone: value } : item
-                                  ),
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </SectionCard>
-              </section>
-
-              <section
-                ref={(node) => {
-                  refs["Technical Capability"].current = node;
-                }}
-              >
-                <SectionCard
-                  title="Technical Capability"
-                  subtitle="Assess manpower, past projects, and client references."
-                >
-                  <div className="grid gap-5">
-                    <TextArea
-                      label="HSE Statement"
-                      value={form.hseStatement}
-                      onChange={(value) => updateField("hseStatement", value)}
-                      placeholder="Briefly describe contractor HSE system, safety culture, and field readiness."
-                    />
-
-                    <TextArea
-                      label="Quality Statement"
-                      value={form.qualityStatement}
-                      onChange={(value) => updateField("qualityStatement", value)}
-                      placeholder="Describe quality assurance / quality control capability."
-                    />
-                  </div>
-
-                  <div className="mt-8">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-base font-semibold text-slate-900">
-                          Key Staff
-                        </h3>
-                        <p className="text-sm text-slate-500">
-                          List technical team members relevant to this service.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => addRow("keyStaff")}
-                        className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-                      >
-                        Add Staff
-                      </button>
-                    </div>
-
-                    <div className="space-y-4">
-                      {form.keyStaff.map((staff, index) => (
-                        <div
-                          key={staff.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                        >
-                          <div className="mb-4 flex items-center justify-between">
-                            <p className="font-medium text-slate-800">
-                              Staff {index + 1}
-                            </p>
-                            {form.keyStaff.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => removeRow("keyStaff", staff.id)}
-                                className="text-sm font-medium text-rose-600 hover:text-rose-700"
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <Input
-                              label="Name"
-                              value={staff.name}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  keyStaff: prev.keyStaff.map((item) =>
-                                    item.id === staff.id ? { ...item, name: value } : item
-                                  ),
-                                }))
-                              }
-                            />
-                            <Input
-                              label="Role"
-                              value={staff.role}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  keyStaff: prev.keyStaff.map((item) =>
-                                    item.id === staff.id ? { ...item, role: value } : item
-                                  ),
-                                }))
-                              }
-                            />
-                            <Input
-                              label="Years of Experience"
-                              value={staff.years}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  keyStaff: prev.keyStaff.map((item) =>
-                                    item.id === staff.id ? { ...item, years: value } : item
-                                  ),
-                                }))
-                              }
-                            />
-                            <Input
-                              label="Certification / Qualification"
-                              value={staff.certification}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  keyStaff: prev.keyStaff.map((item) =>
-                                    item.id === staff.id
-                                      ? { ...item, certification: value }
-                                      : item
-                                  ),
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-8">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-base font-semibold text-slate-900">
-                          Relevant Project Experience
-                        </h3>
-                        <p className="text-sm text-slate-500">
-                          Add similar projects completed by the contractor.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => addRow("projectRecords")}
-                        className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-                      >
-                        Add Project
-                      </button>
-                    </div>
-
-                    <div className="space-y-4">
-                      {form.projectRecords.map((project, index) => (
-                        <div
-                          key={project.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                        >
-                          <div className="mb-4 flex items-center justify-between">
-                            <p className="font-medium text-slate-800">
-                              Project {index + 1}
-                            </p>
-                            {form.projectRecords.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => removeRow("projectRecords", project.id)}
-                                className="text-sm font-medium text-rose-600 hover:text-rose-700"
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <Input
-                              label="Project Name"
-                              value={project.projectName}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  projectRecords: prev.projectRecords.map((item) =>
-                                    item.id === project.id
-                                      ? { ...item, projectName: value }
-                                      : item
-                                  ),
-                                }))
-                              }
-                            />
-                            <Input
-                              label="Client"
-                              value={project.client}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  projectRecords: prev.projectRecords.map((item) =>
-                                    item.id === project.id ? { ...item, client: value } : item
-                                  ),
-                                }))
-                              }
-                            />
-                            <Input
-                              label="Project Value"
-                              value={project.value}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  projectRecords: prev.projectRecords.map((item) =>
-                                    item.id === project.id ? { ...item, value: value } : item
-                                  ),
-                                }))
-                              }
-                              placeholder="e.g. ₦20,000,000"
-                            />
-                            <Input
-                              label="Year"
-                              value={project.year}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  projectRecords: prev.projectRecords.map((item) =>
-                                    item.id === project.id ? { ...item, year: value } : item
-                                  ),
-                                }))
-                              }
-                            />
-                            <Input
-                              label="Status"
-                              value={project.status}
-                              onChange={(value) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  projectRecords: prev.projectRecords.map((item) =>
-                                    item.id === project.id ? { ...item, status: value } : item
-                                  ),
-                                }))
-                              }
-                              placeholder="Completed / Ongoing"
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-8">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-base font-semibold text-slate-900">
-                          Client References
-                        </h3>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => addRow("references")}
-                        className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-                      >
-                        Add Reference
-                      </button>
-                    </div>
-
+                  ) : (
                     <div className="space-y-4">
                       {form.references.map((reference, index) => (
                         <div
@@ -949,15 +663,13 @@ export default function Page() {
                             <p className="font-medium text-slate-800">
                               Reference {index + 1}
                             </p>
-                            {form.references.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => removeRow("references", reference.id)}
-                                className="text-sm font-medium text-rose-600 hover:text-rose-700"
-                              >
-                                Remove
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => removeRow("references", reference.id)}
+                              className="text-sm font-medium text-rose-600 hover:text-rose-700"
+                            >
+                              Remove
+                            </button>
                           </div>
 
                           <div className="grid gap-4 md:grid-cols-2">
@@ -1021,187 +733,16 @@ export default function Page() {
                         </div>
                       ))}
                     </div>
-                  </div>
-                </SectionCard>
-              </section>
-
-              <section
-                ref={(node) => {
-                  refs["Compliance Documents"].current = node;
-                }}
-              >
-                <SectionCard
-                  title="Compliance Documents"
-                  subtitle="Track the contractor’s mandatory business and compliance documents."
-                >
-                  <div className="overflow-hidden rounded-2xl border border-slate-200">
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full border-collapse">
-                        <thead className="bg-slate-950 text-left text-sm text-white">
-                          <tr>
-                            <th className="px-4 py-3 font-medium">Document</th>
-                            <th className="px-4 py-3 font-medium">Status</th>
-                            <th className="px-4 py-3 font-medium">Expiry Date</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 bg-white">
-                          {form.documents.map((doc) => (
-                            <tr key={doc.id}>
-                              <td className="px-4 py-3 text-sm font-medium text-slate-800">
-                                {doc.name}
-                              </td>
-                              <td className="px-4 py-3">
-                                <TableSelect
-                                  value={doc.status}
-                                  onChange={(value) =>
-                                    setForm((prev) => ({
-                                      ...prev,
-                                      documents: prev.documents.map((item) =>
-                                        item.id === doc.id
-                                          ? { ...item, status: value }
-                                          : item
-                                      ),
-                                    }))
-                                  }
-                                  options={documentStatuses}
-                                />
-                              </td>
-                              <td className="px-4 py-3">
-                                <input
-                                  type="date"
-                                  value={doc.expiry}
-                                  onChange={(e) =>
-                                    setForm((prev) => ({
-                                      ...prev,
-                                      documents: prev.documents.map((item) =>
-                                        item.id === doc.id
-                                          ? { ...item, expiry: e.target.value }
-                                          : item
-                                      ),
-                                    }))
-                                  }
-                                  className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                                />
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </SectionCard>
-              </section>
-
-              <section
-                ref={(node) => {
-                  refs["Evaluation & Decision"].current = node;
-                }}
-              >
-                <SectionCard
-                  title="Evaluation & Decision"
-                  subtitle="Rate the contractor and record the reviewer’s recommendation."
-                >
-                  <div className="overflow-hidden rounded-2xl border border-slate-200">
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full border-collapse">
-                        <thead className="bg-slate-950 text-left text-sm text-white">
-                          <tr>
-                            <th className="px-4 py-3 font-medium">Criterion</th>
-                            <th className="px-4 py-3 font-medium">Score (1 - 5)</th>
-                            <th className="px-4 py-3 font-medium">Comments</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 bg-white">
-                          {form.evaluations.map((row) => (
-                            <tr key={row.id}>
-                              <td className="px-4 py-3 text-sm font-medium text-slate-800">
-                                {row.criterion}
-                              </td>
-                              <td className="px-4 py-3">
-                                <TableSelect
-                                  value={row.score}
-                                  onChange={(value) =>
-                                    setForm((prev) => ({
-                                      ...prev,
-                                      evaluations: prev.evaluations.map((item) =>
-                                        item.id === row.id
-                                          ? {
-                                              ...item,
-                                              score: Number(value),
-                                            }
-                                          : item
-                                      ),
-                                    }))
-                                  }
-                                  options={scoreOptions}
-                                />
-                              </td>
-                              <td className="px-4 py-3">
-                                <input
-                                  type="text"
-                                  value={row.comment}
-                                  onChange={(e) =>
-                                    setForm((prev) => ({
-                                      ...prev,
-                                      evaluations: prev.evaluations.map((item) =>
-                                        item.id === row.id
-                                          ? { ...item, comment: e.target.value }
-                                          : item
-                                      ),
-                                    }))
-                                  }
-                                  placeholder="Optional note"
-                                  className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                                />
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 grid gap-4 md:grid-cols-2">
-                    <Select
-                      label="Recommendation"
-                      value={form.recommended}
-                      onChange={(value) => updateField("recommended", value)}
-                      options={[
-                        "Under Review",
-                        "Recommended",
-                        "Recommended with Conditions",
-                        "Not Recommended",
-                      ]}
-                    />
-                    <Input
-                      label="Reviewer Name"
-                      value={form.reviewerName}
-                      onChange={(value) => updateField("reviewerName", value)}
-                    />
-                    <Input
-                      label="Reviewer Title"
-                      value={form.reviewerTitle}
-                      onChange={(value) => updateField("reviewerTitle", value)}
-                    />
-                  </div>
-
-                  <div className="mt-5">
-                    <TextArea
-                      label="Reviewer Notes"
-                      value={form.notes}
-                      onChange={(value) => updateField("notes", value)}
-                      placeholder="Enter concluding observations, approval conditions, or follow-up actions."
-                      rows={5}
-                    />
-                  </div>
-                </SectionCard>
-              </section>
-            </div>
+                  )}
+                </div>
+              </SectionCard>
+            </section>
           </div>
         </div>
-        <div className="mt-auto shrink-0 w-full">
-          <Footer />
-        </div>
+      </div>
+      <div className="mt-auto shrink-0 w-full">
+        <Footer />
+      </div>
     </main>
   );
 }
