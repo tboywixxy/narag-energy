@@ -227,27 +227,111 @@ function Select({
   onChange: (value: string) => void;
   options: string[];
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
-    <label className="grid gap-2">
+    <div className="grid gap-2" ref={dropdownRef}>
       <span className="text-sm font-medium text-slate-800">{label}</span>
       <div className="relative">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-sm transition focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`relative flex min-h-[48px] w-full items-center justify-between rounded-xl border bg-white px-4 py-2 text-left text-sm shadow-sm transition focus:outline-none focus:ring-1 focus:ring-orange-500 ${
+            isOpen
+              ? "border-orange-500 ring-1 ring-orange-500"
+              : "border-slate-200 hover:border-orange-300"
+          } ${!value ? "text-slate-500" : "text-slate-900"}`}
         >
-          <option value="">Select option</option>
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-        <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
-          <ChevronDownIcon />
-        </div>
+          <span className="block pr-6 leading-relaxed line-clamp-2">
+            {value || "Select option"}
+          </span>
+          <span className="pointer-events-none absolute right-4 flex items-center">
+            <motion.div
+              animate={{ rotate: isOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDownIcon />
+            </motion.div>
+          </span>
+        </button>
+
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15 }}
+              className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/10 thin-scrollbar"
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  onChange("");
+                  setIsOpen(false);
+                }}
+                className={`w-full px-4 py-3 flex items-start text-left text-sm transition-colors hover:bg-orange-50 ${
+                  !value
+                    ? "bg-orange-50/50 text-orange-700 font-medium"
+                    : "text-slate-700"
+                }`}
+              >
+                <span className="block whitespace-normal break-words flex-1 pr-2 leading-relaxed">
+                  Select option
+                </span>
+                {!value && (
+                  <span className="flex items-center text-orange-600 mt-0.5">
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                )}
+              </button>
+              {options.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    onChange(option);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full px-4 py-3 flex items-start text-left text-sm transition-colors hover:bg-orange-50 ${
+                    value === option
+                      ? "bg-orange-50/50 text-orange-700 font-medium"
+                      : "text-slate-700"
+                  }`}
+                >
+                  <span className="block whitespace-normal break-words flex-1 pr-2 leading-relaxed">
+                    {option}
+                  </span>
+                  {value === option && (
+                    <span className="flex items-center text-orange-600 mt-0.5">
+                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                      </svg>
+                    </span>
+                  )}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </label>
+    </div>
   );
 }
 
@@ -363,7 +447,7 @@ export default function Page() {
   };
 
   return (
-    <main className="flex-1 flex flex-col min-h-0 relative w-full lg:overflow-y-auto bg-slate-50 hide-scrollbar">
+    <main className="flex-1 flex flex-col min-h-0 relative w-full lg:overflow-y-auto bg-slate-50 thin-scrollbar">
       <AnimatePresence>
         {showToast && (
           <motion.div
@@ -378,7 +462,7 @@ export default function Page() {
       </AnimatePresence>
 
       <div className="mx-auto flex flex-none w-full max-w-[1600px] flex-col lg:flex-row lg:gap-6 px-4 md:px-8 lg:px-8 pb-6 pt-6 lg:pt-8">
-        <aside className="w-full lg:w-[240px] xl:w-[260px] shrink-0 sticky top-[10px] z-40 bg-slate-50/95 lg:bg-transparent -mx-4 px-4 pt-1.5 pb-1 lg:mx-0 lg:px-0 lg:py-0 lg:border-none lg:pr-4 border-b border-slate-200 lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto hide-scrollbar self-start">
+        <aside className="w-full lg:w-[240px] xl:w-[260px] shrink-0 sticky top-[10px] z-40 bg-slate-50/95 lg:bg-transparent -mx-4 px-4 pt-1.5 pb-1 lg:mx-0 lg:px-0 lg:py-0 lg:border-none lg:pr-4 border-b border-slate-200 lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto thin-scrollbar self-start">
           <div className="flex flex-col gap-1 lg:gap-3 lg:pr-2">
             <div className="hidden lg:block w-full">
               <ProgressTabs

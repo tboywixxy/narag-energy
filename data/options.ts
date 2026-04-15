@@ -1,12 +1,15 @@
 export const contractorTypes = [
-  "Civil Works Contractor",
-  "Electrical Contractor",
-  "Mechanical Contractor",
-  "Instrumentation Contractor",
-  "IT / Digital Vendor",
-  "Consultancy Firm",
-  "Logistics / Transport Contractor",
-  "General Services Contractor",
+  "Reservoir Engineering",
+  "Well Completions and Intervention Services",
+  "Facility Management",
+  "Electrical Process Engineering",
+  "VolantBA Hydrocarbon Accounting, Back Allocation and Pipeline Allocation Portal",
+  "Geology and Geophysics Studies",
+  "Petrophysical Studies",
+  "Production Optimisation",
+  "Seismic Data Processing",
+  "Information Management",
+  "ERP - Finance, Project Management (PM), Human Resources (HR), Helpdesk",
 ];
 
 export const companySizes = [

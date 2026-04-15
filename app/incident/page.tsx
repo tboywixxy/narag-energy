@@ -217,7 +217,7 @@ export default function IncidentReportPage() {
   };
 
   return (
-    <main className="flex-1 px-4 md:px-8 lg:px-10 flex flex-col relative lg:overflow-y-auto hide-scrollbar">
+    <main className="flex-1 px-4 md:px-8 lg:px-10 flex flex-col relative lg:overflow-y-auto thin-scrollbar">
       <AnimatePresence>
         {showToast && (
           <motion.div
